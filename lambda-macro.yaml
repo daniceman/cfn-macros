@@ -1,0 +1,48 @@
+Description: >
+  This stack sets up a Lambda function as a CFN macro.
+Resources:
+  MacroFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: MacroFunctionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LogWriter
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: !Join [":", ["arn", "aws", "logs", !Ref "AWS::Region", !Ref "AWS::AccountId", "*"]]
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - Logs:PutLogEvents
+                Resource: !Join [":", ["arn", "aws", "logs", !Ref "AWS::Region", !Ref "AWS::AccountId", "log-group", "*"]]
+  MacroFunction:
+    Type: AWS::Lambda::Function
+    Properties: 
+      Code:
+        ZipFile: >
+          def handler(event, context):
+            print("Lol")
+            return event
+      FunctionName: CFN-Macro
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt MacroFunctionRole.Arn
+      Runtime: 'python3.6'
+      Timeout: 5
+  Macro:
+    Type: AWS::CloudFormation::Macro
+    Properties:
+      Description: This is a very simple CloudFormation Macro which simply echoes back its input
+      FunctionName: !Ref MacroFunction 
+      Name: EchoTestMacro
